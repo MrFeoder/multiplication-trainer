@@ -374,3 +374,47 @@ test('checkAnswer: обратный вопрос отвергает неверн
   assert.equal(MTM.checkAnswer(q, null), false);
   assert.equal(MTM.checkAnswer(q, '56'), false, 'число не является ответом обратного задания');
 });
+
+test('formatTime: границы', () => {
+  assert.equal(MTM.formatTime(0), '00:00');
+  assert.equal(MTM.formatTime(5), '00:05');
+  assert.equal(MTM.formatTime(59), '00:59');
+  assert.equal(MTM.formatTime(60), '01:00');
+  assert.equal(MTM.formatTime(3600), '60:00');
+});
+
+test('summarize: проценты, время и разбор ошибок', () => {
+  const r = MTM.summarize({
+    total: 10,
+    correct: 7,
+    seconds: 65,
+    mistakes: [{ prompt: '7 × 8 = ?', given: '54', answer: '56' }]
+  });
+  assert.equal(r.total, 10);
+  assert.equal(r.correct, 7);
+  assert.equal(r.percent, 70);
+  assert.equal(r.secondsText, '01:05');
+  assert.deepEqual(r.mistakes, [{ prompt: '7 × 8 = ?', given: '54', answer: '56' }]);
+});
+
+test('summarize: не падает при нуле вопросов и округляет процент', () => {
+  assert.equal(MTM.summarize({ total: 0, correct: 0, seconds: 0, mistakes: [] }).percent, 0);
+  assert.equal(MTM.summarize({ total: 3, correct: 2, seconds: 1, mistakes: [] }).percent, 67);
+});
+
+test('bestKey: зависит от типа ответа, набора заданий и диапазонов', () => {
+  assert.equal(MTM.bestKey(base), 'mtm.best.input.direct+division+missing+reverse.2-9.2-9');
+  assert.equal(
+    MTM.bestKey({ ...base, answerType: 'choice', formats: ['reverse', 'direct'], aFrom: 1, aTo: 10, bFrom: 1, bTo: 12 }),
+    'mtm.best.choice.direct+reverse.1-10.1-12'
+  );
+});
+
+test('isBetter: больше верных лучше, при равенстве — быстрее', () => {
+  assert.equal(MTM.isBetter({ correct: 5, seconds: 30 }, null), true);
+  assert.equal(MTM.isBetter({ correct: 5, seconds: 30 }, undefined), true);
+  assert.equal(MTM.isBetter({ correct: 6, seconds: 90 }, { correct: 5, seconds: 10 }), true);
+  assert.equal(MTM.isBetter({ correct: 4, seconds: 5 }, { correct: 5, seconds: 10 }), false);
+  assert.equal(MTM.isBetter({ correct: 5, seconds: 5 }, { correct: 5, seconds: 10 }), true);
+  assert.equal(MTM.isBetter({ correct: 5, seconds: 10 }, { correct: 5, seconds: 10 }), false);
+});

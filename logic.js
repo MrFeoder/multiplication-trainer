@@ -367,6 +367,39 @@
     return parsed === q.answer;
   }
 
+  function formatTime(seconds) {
+    var s = Math.floor(seconds);
+    return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  }
+
+  function summarize(round) {
+    var r = round && typeof round === 'object' ? round : {};
+    var total = Number.isFinite(r.total) ? r.total : 0;
+    var correct = Number.isFinite(r.correct) ? r.correct : 0;
+    var seconds = Number.isFinite(r.seconds) ? r.seconds : 0;
+    return {
+      total: total,
+      correct: correct,
+      percent: total > 0 ? Math.round(correct / total * 100) : 0,
+      seconds: seconds,
+      secondsText: formatTime(seconds),
+      mistakes: Array.isArray(r.mistakes) ? r.mistakes : []
+    };
+  }
+
+  function bestKey(settings) {
+    var s = settings && typeof settings === 'object' ? settings : {};
+    var formats = Array.isArray(s.formats) ? s.formats.slice().sort() : [];
+    return 'mtm.best.' + s.answerType + '.' + formats.join('+') +
+      '.' + s.aFrom + '-' + s.aTo + '.' + s.bFrom + '-' + s.bTo;
+  }
+
+  function isBetter(a, b) {
+    if (!b) return true;
+    if (a.correct !== b.correct) return a.correct > b.correct;
+    return a.seconds < b.seconds;
+  }
+
   return {
     FORMATS: FORMATS,
     ANSWER_TYPES: ANSWER_TYPES,
@@ -381,6 +414,10 @@
     buildPool: buildPool,
     nextQuestion: nextQuestion,
     makeChoices: makeChoices,
-    checkAnswer: checkAnswer
+    checkAnswer: checkAnswer,
+    formatTime: formatTime,
+    summarize: summarize,
+    bestKey: bestKey,
+    isBetter: isBetter
   };
 });
