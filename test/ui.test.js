@@ -261,6 +261,7 @@ test('ни одной галочки — ошибка и блокировка «
 
 test('режим «вписать»: верный и неверный ответы считаются один раз', () => {
   const app = createApp();
+  onlyFormats(app, ['direct']);
   app.app.startRound();
   assert.equal(app.dom['screen-quiz'].classList.contains('hidden'), false);
   assert.equal(app.app.getState().round.phase, 'answering');
@@ -284,6 +285,7 @@ test('режим «вписать»: верный и неверный ответ
 
 test('пустой ответ: подсказка и отсутствие засчитанной ошибки', () => {
   const app = createApp();
+  onlyFormats(app, ['direct']);
   app.app.startRound();
   app.dom['answer-input'].value = '';
   app.app.submitAnswer();
@@ -464,6 +466,7 @@ test('смена профиля меняет тему и диапазоны', ()
 
 test('Enter в поле ответа подтверждает ответ', () => {
   const app = createApp();
+  onlyFormats(app, ['direct']);
   app.app.startRound();
   const q = currentQuestion(app);
   app.dom['answer-input'].value = String(q.answer);
