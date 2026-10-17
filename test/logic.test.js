@@ -145,3 +145,146 @@ test('normalizeSettings: пустой formats становится полным 
   assert.deepEqual(MTM.normalizeSettings({ formats: [] }).formats, ALL_FORMATS);
   assert.deepEqual(MTM.normalizeSettings({ formats: 'nope' }).formats, ALL_FORMATS);
 });
+
+function poolOf(formats, aFrom, aTo, bFrom, bTo) {
+  return MTM.buildPool({ ...base, formats, aFrom, aTo, bFrom, bTo });
+}
+
+test('buildPool: прямой вопрос', () => {
+  const pool = poolOf(['direct'], 7, 7, 8, 8);
+  assert.equal(pool.length, 1);
+  const q = pool[0];
+  assert.equal(q.format, 'direct');
+  assert.equal(q.a, 7);
+  assert.equal(q.b, 8);
+  assert.equal(q.product, 56);
+  assert.equal(q.pair, false);
+  assert.equal(q.variant, '');
+  assert.equal(q.prompt, '7 × 8 = ?');
+  assert.equal(q.answer, 56);
+  assert.equal(q.answerText, '56');
+});
+
+test('buildPool: пропущенный множитель — оба варианта', () => {
+  const pool = poolOf(['missing'], 7, 7, 8, 8);
+  assert.equal(pool.length, 2);
+
+  const askB = pool.find(q => q.variant === 'askB');
+  assert.equal(askB.prompt, '7 × ? = 56');
+  assert.equal(askB.answer, 8);
+  assert.equal(askB.answerText, '8');
+
+  const askA = pool.find(q => q.variant === 'askA');
+  assert.equal(askA.prompt, '? × 8 = 56');
+  assert.equal(askA.answer, 7);
+  assert.equal(askA.answerText, '7');
+});
+
+test('buildPool: деление — оба варианта', () => {
+  const pool = poolOf(['division'], 7, 7, 8, 8);
+  assert.equal(pool.length, 2);
+
+  const divA = pool.find(q => q.variant === 'divA');
+  assert.equal(divA.prompt, '56 ÷ 7 = ?');
+  assert.equal(divA.answer, 8);
+
+  const divB = pool.find(q => q.variant === 'divB');
+  assert.equal(divB.prompt, '56 ÷ 8 = ?');
+  assert.equal(divB.answer, 7);
+});
+
+test('buildPool: обратный вопрос — пара', () => {
+  const pool = poolOf(['reverse'], 7, 7, 8, 8);
+  assert.equal(pool.length, 1);
+  const q = pool[0];
+  assert.equal(q.prompt, '56 = ? × ?');
+  assert.equal(q.pair, true);
+  assert.equal(q.answer, 56);
+  assert.equal(q.answerText, '7 × 8');
+});
+
+test('buildPool: одна пара со всеми форматами даёт 6 вопросов', () => {
+  const pool = poolOf(ALL_FORMATS, 7, 7, 8, 8);
+  assert.equal(pool.length, 6);
+  assert.equal(new Set(pool.map(MTM.questionKey)).size, 6);
+});
+
+test('buildPool: размер растёт как произведение диапазонов', () => {
+  assert.equal(poolOf(['direct'], 2, 3, 5, 6).length, 4);
+  assert.equal(poolOf(['direct', 'reverse'], 2, 3, 5, 6).length, 8);
+});
+
+test('buildPool: вырожденный диапазон 1..1 × 1..1 не падает', () => {
+  const pool = poolOf(ALL_FORMATS, 1, 1, 1, 1);
+  assert.equal(pool.length, 6);
+  const direct = pool.find(q => q.format === 'direct');
+  assert.equal(direct.prompt, '1 × 1 = ?');
+  assert.equal(direct.answer, 1);
+});
+
+test('buildPool: перевёрнутый диапазон даёт пустой пул', () => {
+  assert.deepEqual(poolOf(['direct'], 9, 2, 1, 9), []);
+  assert.deepEqual(poolOf(['direct'], 1, 9, 9, 2), []);
+});
+
+test('questionKey: устойчив и различает варианты', () => {
+  const pool = poolOf(ALL_FORMATS, 7, 7, 8, 8);
+  for (const q of pool) assert.equal(MTM.questionKey(q), MTM.questionKey(q));
+  assert.equal(new Set(pool.map(MTM.questionKey)).size, pool.length);
+  const a = pool.find(q => q.variant === 'askA');
+  const b = pool.find(q => q.variant === 'askB');
+  assert.notEqual(MTM.questionKey(a), MTM.questionKey(b));
+});
+
+test('shuffle: новый массив с теми же элементами', () => {
+  const src = [1, 2, 3, 4, 5];
+  const out = MTM.shuffle(src);
+  assert.notEqual(out, src);
+  assert.deepEqual(src, [1, 2, 3, 4, 5]);
+  assert.deepEqual([...out].sort((x, y) => x - y), [1, 2, 3, 4, 5]);
+});
+
+test('nextQuestion: не повторяет вопросы, пока пул не исчерпан', () => {
+  const pool = poolOf(['direct'], 1, 3, 1, 1);
+  let used = [];
+  const seen = [];
+  for (let i = 0; i < pool.length; i++) {
+    const { question, exhausted } = MTM.nextQuestion(pool, used, used[used.length - 1]);
+    used.push(MTM.questionKey(question));
+    seen.push(MTM.questionKey(question));
+    assert.equal(exhausted, false);
+  }
+  assert.equal(new Set(seen).size, pool.length);
+});
+
+test('nextQuestion: после исчерпания пула сообщает exhausted и не повторяет предыдущий', () => {
+  const pool = poolOf(['direct'], 1, 2, 1, 1);
+  const keys = pool.map(MTM.questionKey);
+  const { question, exhausted } = MTM.nextQuestion(pool, keys.slice(), keys[keys.length - 1]);
+  assert.equal(exhausted, true);
+  assert.notEqual(MTM.questionKey(question), keys[keys.length - 1]);
+});
+
+test('nextQuestion: пул из одного вопроса не зацикливается', () => {
+  const pool = poolOf(['direct'], 3, 3, 3, 3);
+  const key = MTM.questionKey(pool[0]);
+  for (let i = 0; i < 5; i++) {
+    const { question } = MTM.nextQuestion(pool, [key], key);
+    assert.equal(question.prompt, '3 × 3 = ?');
+  }
+});
+
+test('nextQuestion: раунд длиннее пула выдаёт все вопросы пула', () => {
+  const pool = poolOf(['direct'], 1, 3, 1, 1);
+  let used = [];
+  let lastKey = null;
+  const seen = new Set();
+  for (let i = 0; i < 30; i++) {
+    const { question, exhausted } = MTM.nextQuestion(pool, used, lastKey);
+    const key = MTM.questionKey(question);
+    if (exhausted) used = [key]; else used.push(key);
+    lastKey = key;
+    seen.add(key);
+  }
+  assert.equal(seen.size, pool.length);
+});

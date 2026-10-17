@@ -153,6 +153,126 @@
     return s;
   }
 
+  function questionKey(question) {
+    var q = question && typeof question === 'object' ? question : {};
+    return q.format + ':' + q.a + 'x' + q.b + ':' + (q.variant || '-');
+  }
+
+  function shuffle(array) {
+    var out = Array.isArray(array) ? array.slice() : [];
+    for (var i = out.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = out[i];
+      out[i] = out[j];
+      out[j] = tmp;
+    }
+    return out;
+  }
+
+  function makeQuestion(format, a, b, variant) {
+    var product = a * b;
+    var q = {
+      format: format,
+      a: a,
+      b: b,
+      product: product,
+      variant: variant || '',
+      pair: false,
+      prompt: '',
+      answer: product,
+      answerText: String(product)
+    };
+
+    if (format === 'direct') {
+      q.prompt = a + ' × ' + b + ' = ?';
+    } else if (format === 'missing') {
+      if (variant === 'askB') {
+        q.prompt = a + ' × ? = ' + product;
+        q.answer = b;
+        q.answerText = String(b);
+      } else {
+        q.prompt = '? × ' + b + ' = ' + product;
+        q.answer = a;
+        q.answerText = String(a);
+      }
+    } else if (format === 'division') {
+      if (variant === 'divA') {
+        q.prompt = product + ' ÷ ' + a + ' = ?';
+        q.answer = b;
+        q.answerText = String(b);
+      } else {
+        q.prompt = product + ' ÷ ' + b + ' = ?';
+        q.answer = a;
+        q.answerText = String(a);
+      }
+    } else if (format === 'reverse') {
+      q.prompt = product + ' = ? × ?';
+      q.answer = product;
+      q.answerText = a + ' × ' + b;
+      q.pair = true;
+    }
+
+    return q;
+  }
+
+  function buildPool(settings) {
+    var s = settings && typeof settings === 'object' ? settings : {};
+    var aFrom = toInt(s.aFrom);
+    var aTo = toInt(s.aTo);
+    var bFrom = toInt(s.bFrom);
+    var bTo = toInt(s.bTo);
+    if (!Number.isInteger(aFrom) || !Number.isInteger(aTo)) return [];
+    if (!Number.isInteger(bFrom) || !Number.isInteger(bTo)) return [];
+    if (aFrom > aTo || bFrom > bTo) return [];
+
+    var formats = parseFormats(s.formats);
+    var list = formats.isArray ? formats.list : [];
+    var pool = [];
+
+    for (var fi = 0; fi < list.length; fi++) {
+      var fmt = list[fi];
+      for (var a = aFrom; a <= aTo; a++) {
+        for (var b = bFrom; b <= bTo; b++) {
+          if (fmt === 'direct') {
+            pool.push(makeQuestion('direct', a, b, ''));
+          } else if (fmt === 'missing') {
+            pool.push(makeQuestion('missing', a, b, 'askB'));
+            pool.push(makeQuestion('missing', a, b, 'askA'));
+          } else if (fmt === 'division') {
+            pool.push(makeQuestion('division', a, b, 'divA'));
+            pool.push(makeQuestion('division', a, b, 'divB'));
+          } else if (fmt === 'reverse') {
+            pool.push(makeQuestion('reverse', a, b, ''));
+          }
+        }
+      }
+    }
+
+    return pool;
+  }
+
+  function nextQuestion(pool, usedKeys, lastKey) {
+    var used = Array.isArray(usedKeys) ? usedKeys : [];
+    var available = pool.filter(function (q) {
+      var key = questionKey(q);
+      return used.indexOf(key) === -1 && key !== lastKey;
+    });
+    if (available.length > 0) {
+      return {
+        question: available[Math.floor(Math.random() * available.length)],
+        exhausted: false
+      };
+    }
+    var fallback = pool.filter(function (q) {
+      return questionKey(q) !== lastKey || pool.length === 1;
+    });
+    if (fallback.length === 0) fallback = pool;
+    return {
+      question: fallback[Math.floor(Math.random() * fallback.length)],
+      exhausted: true
+    };
+  }
+
   return {
     FORMATS: FORMATS,
     ANSWER_TYPES: ANSWER_TYPES,
@@ -161,6 +281,10 @@
     defaultsFor: defaultsFor,
     applyProfile: applyProfile,
     validateSettings: validateSettings,
-    normalizeSettings: normalizeSettings
+    normalizeSettings: normalizeSettings,
+    questionKey: questionKey,
+    shuffle: shuffle,
+    buildPool: buildPool,
+    nextQuestion: nextQuestion
   };
 });
