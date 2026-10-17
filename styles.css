@@ -349,7 +349,7 @@ select:focus-visible {
   gap: 0.5rem;
 }
 
-/* ───── кнопка-донат сбоку ───── */
+/* ───── кнопка-донат (оранжевая, посередине слева) ───── */
 
 .donate-btn {
   position: fixed;
@@ -357,29 +357,29 @@ select:focus-visible {
   top: 50%;
   transform: translateY(-50%);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 160px;
-  padding: 0.8rem 0.6rem;
-  background: var(--accent);
-  color: var(--accent-text);
-  border-radius: 0 12px 12px 0;
-  font-size: 0.75rem;
-  font-weight: 700;
-  line-height: 1.3;
-  letter-spacing: 1px;
+  gap: 0.35rem;
+  padding: 1.1rem 0.75rem;
+  background: linear-gradient(160deg, #ffa94d 0%, #ff7a00 100%);
+  background-color: #ff7a00;
+  color: #fff;
+  border-radius: 0 16px 16px 0;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  line-height: 1.1;
   text-align: center;
   text-decoration: none;
-  writing-mode: vertical-lr;
-  text-orientation: mixed;
   z-index: 999;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 6px 22px rgba(255, 122, 0, 0.38);
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .donate-btn:hover {
-  transform: translateY(-50%) scale(1.05);
-  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.28);
+  transform: translateY(-50%) scale(1.06);
+  box-shadow: 0 10px 30px rgba(255, 122, 0, 0.55);
 }
 
 .hidden {
@@ -425,8 +425,8 @@ select:focus-visible {
   }
 
   .donate-btn {
-    font-size: 0.65rem;
-    min-height: 120px;
-    padding: 0.5rem 0.4rem;
+    font-size: 0.7rem;
+    padding: 0.8rem 0.55rem;
+    letter-spacing: 1px;
   }
 }

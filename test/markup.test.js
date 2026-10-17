@@ -62,11 +62,20 @@ test('index.html содержит кнопку-донат со ссылкой н
   assert.ok(tag[0].includes('rel="noopener"'), 'нужен rel="noopener"');
 });
 
-test('styles.css оформляет кнопку-донат цветом темы', () => {
+test('styles.css оформляет кнопку-донат оранжевой по центру высоты', () => {
   assert.ok(css.includes('.donate-btn'), 'нет класса .donate-btn');
   const block = css.slice(css.indexOf('.donate-btn'));
   assert.ok(block.includes('position: fixed'), 'кнопка должна быть закреплена');
-  assert.ok(block.includes('var(--accent)'), 'цвет кнопки должен браться из темы');
+  assert.ok(/#ff7a00/i.test(block), 'кнопка должна быть оранжевой');
+  assert.ok(block.includes('top: 50%'), 'кнопка должна стоять в середине страницы по высоте');
+  assert.ok(!block.includes('writing-mode'), 'текст не должен быть повёрнут набок');
+});
+
+test('кнопка-донат читается сверху вниз: DONAT FOR COOKIE', () => {
+  const tag = html.match(/<a\b[^>]*class="donate-btn"[^>]*>([\s\S]*?)<\/a>/i);
+  assert.ok(tag, 'нет ссылки с классом donate-btn');
+  const words = tag[1].replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]*>/g, ' ').trim().split(/\s+/);
+  assert.deepEqual(words, ['DONAT', 'FOR', 'COOKIE'], `на кнопке: ${tag[1]}`);
 });
 
 test('styles.css содержит темы профилей и адаптив', () => {
