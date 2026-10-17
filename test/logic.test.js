@@ -340,6 +340,27 @@ test('makeChoices: обратные варианты валидны на пер�
   }
 });
 
+test('makeChoices: варианты валидны на широком сэмпле до 100 (все форматы)', () => {
+  const sample = [1, 2, 3, 7, 9, 10, 11, 12, 20, 21, 50, 99, 100];
+  for (const a of sample) {
+    for (const b of sample) {
+      for (const q of poolOf(ALL_FORMATS, a, a, b, b)) {
+        const choices = MTM.makeChoices(q);
+        assert.equal(choices.length, 4, q.prompt);
+        if (q.pair) {
+          assert.equal(new Set(choices.map(p => p.a + 'x' + p.b)).size, 4, `${q.prompt}: ${JSON.stringify(choices)}`);
+          assert.ok(choices.every(p => Number.isInteger(p.a) && Number.isInteger(p.b) && p.a > 0 && p.b > 0), `${q.prompt}: ${JSON.stringify(choices)}`);
+          assert.equal(choices.filter(p => p.a * p.b === q.product).length, 1, `${q.prompt}: ${JSON.stringify(choices)}`);
+        } else {
+          assert.equal(new Set(choices).size, 4, `${q.prompt} → ${choices}`);
+          assert.ok(choices.every(c => Number.isInteger(c) && c > 0), `${q.prompt} → ${choices}`);
+          assert.equal(choices.filter(c => c === q.answer).length, 1, `${q.prompt} → ${choices}`);
+        }
+      }
+    }
+  }
+});
+
 test('checkAnswer: числовое сравнение и мусор', () => {
   const q = poolOf(['direct'], 7, 7, 8, 8)[0];
   assert.equal(MTM.checkAnswer(q, '56'), true);

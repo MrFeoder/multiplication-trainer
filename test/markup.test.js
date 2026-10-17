@@ -30,6 +30,18 @@ test('все четыре вида заданий заданы галочкам�
   }
 });
 
+test('index.html содержит все id, которые запрашивает app.js через byId', () => {
+  const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const re = /byId\('([^']+)'\)/g;
+  const missing = [];
+  let match = re.exec(appSource);
+  while (match) {
+    if (!html.includes(`id="${match[1]}"`)) missing.push(match[1]);
+    match = re.exec(appSource);
+  }
+  assert.deepEqual(missing, [], `app.js запрашивает id, которых нет в разметке: ${missing.join(', ')}`);
+});
+
 test('index.html подключает скрипты в правильном порядке без ES-модулей', () => {
   assert.ok(html.indexOf('styles.css') < html.indexOf('logic.js'));
   assert.ok(html.indexOf('logic.js') < html.indexOf('app.js'));
