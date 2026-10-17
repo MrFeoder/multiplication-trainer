@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Тренажёр: таблица умножения</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="theme-kid">
+  <header class="app-header">
+    <h1>Тренажёр: таблица умножения</h1>
+  </header>
+
+  <main class="app-main">
+    <section id="screen-settings" class="screen">
+      <h2>Настройки</h2>
+
+      <div class="field">
+        <label for="profile">Профиль</label>
+        <select id="profile">
+          <option value="kid">Школьник</option>
+          <option value="adult">Взрослый</option>
+          <option value="neutral">Нейтральный</option>
+        </select>
+      </div>
+
+      <fieldset class="field">
+        <legend>Первый множитель (A)</legend>
+        <div class="range-row">
+          <label for="a-from">от</label>
+          <input id="a-from" type="number" inputmode="numeric" min="1" max="100" step="1" value="2">
+          <label for="a-to">до</label>
+          <input id="a-to" type="number" inputmode="numeric" min="1" max="100" step="1" value="9">
+        </div>
+      </fieldset>
+
+      <fieldset class="field">
+        <legend>Второй множитель (B)</legend>
+        <div class="range-row">
+          <label for="b-from">от</label>
+          <input id="b-from" type="number" inputmode="numeric" min="1" max="100" step="1" value="2">
+          <label for="b-to">до</label>
+          <input id="b-to" type="number" inputmode="numeric" min="1" max="100" step="1" value="9">
+        </div>
+      </fieldset>
+
+      <fieldset class="field">
+        <legend>Какие задания</legend>
+        <div class="check-row">
+          <label class="check"><input id="fmt-direct" type="checkbox" checked> Прямой (7 × 8 = ?)</label>
+          <label class="check"><input id="fmt-missing" type="checkbox" checked> Пропущенный множитель (7 × ? = 56)</label>
+          <label class="check"><input id="fmt-reverse" type="checkbox" checked> Обратный (56 = ? × ?)</label>
+          <label class="check"><input id="fmt-division" type="checkbox" checked> Деление (56 ÷ 7 = ?)</label>
+        </div>
+      </fieldset>
+
+      <div class="field">
+        <label for="answer-type">Тип ответа</label>
+        <select id="answer-type">
+          <option value="input" selected>Вписать</option>
+          <option value="choice">Выбрать из вариантов</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="round-length">Вопросов в раунде</label>
+        <input id="round-length" type="number" inputmode="numeric" min="1" max="100" step="1" value="10">
+      </div>
+
+      <div id="settings-errors" class="messages errors" role="status" aria-live="polite"></div>
+      <div id="settings-warnings" class="messages warnings" role="status" aria-live="polite"></div>
+
+      <button type="button" id="start-btn" class="primary" disabled>Начать</button>
+    </section>
+
+    <section id="screen-quiz" class="screen hidden">
+      <div class="quiz-status">
+        <span id="q-progress">Вопрос 1 из 10</span>
+        <span id="q-correct">Верно: 0</span>
+        <span id="q-wrong">Ошибки: 0</span>
+        <span id="q-time">00:00</span>
+      </div>
+
+      <div id="question-card" class="question-card" role="status" aria-live="polite">—</div>
+
+      <div class="answer-area">
+        <div id="input-area" class="input-area">
+          <input id="answer-input" type="text" inputmode="numeric" autocomplete="off" aria-label="Ваш ответ">
+          <span id="answer-sep" class="answer-sep hidden">×</span>
+          <input id="answer-input-2" class="hidden" type="text" inputmode="numeric" autocomplete="off" aria-label="Второй множитель">
+          <button type="button" id="answer-submit" class="primary">Ответить</button>
+        </div>
+        <div id="choices" class="choices"></div>
+        <div id="answer-hint" class="hint" role="status" aria-live="polite"></div>
+      </div>
+
+      <button type="button" id="quit-btn" class="ghost">Прервать</button>
+    </section>
+
+    <section id="screen-results" class="screen hidden">
+      <h2>Результат</h2>
+      <p id="res-summary" class="res-summary">Верно 0 из 0</p>
+      <p id="res-percent" class="res-percent">0%</p>
+      <p id="res-time" class="res-time">Время: 00:00</p>
+      <ul id="res-mistakes" class="res-mistakes"></ul>
+      <p id="best-line" class="best-line"></p>
+      <div class="res-actions">
+        <button type="button" id="again-btn" class="primary">Ещё раз</button>
+        <button type="button" id="settings-btn" class="ghost">Изменить настройки</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="logic.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
