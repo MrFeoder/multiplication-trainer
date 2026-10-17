@@ -273,6 +273,100 @@
     };
   }
 
+  function numberChoices(question, total) {
+    var answer = question.answer;
+    var a = question.a;
+    var b = question.b;
+    var product = question.product;
+    var other = null;
+    if (question.format === 'missing') other = question.variant === 'askB' ? a : b;
+    else if (question.format === 'division') other = question.variant === 'divA' ? a : b;
+
+    var candidates;
+    if (question.format === 'direct') {
+      candidates = [
+        product + a, product - a, product + b, product - b,
+        product + 1, product - 1,
+        (a + 1) * b, (a - 1) * b, a * (b + 1), a * (b - 1)
+      ];
+    } else {
+      candidates = [answer + 1, answer - 1, answer + 2, answer - 2];
+      if (other !== null) candidates.push(other, other + 1, other - 1);
+    }
+
+    var unique = [];
+    for (var i = 0; i < candidates.length; i++) {
+      var c = candidates[i];
+      if (Number.isInteger(c) && c > 0 && c !== answer && unique.indexOf(c) === -1) unique.push(c);
+    }
+
+    var distractors = shuffle(unique).slice(0, total - 1);
+    var k = 1;
+    while (distractors.length < total - 1 && k <= 1000) {
+      var up = answer + k;
+      var down = answer - k;
+      if (up > 0 && up !== answer && distractors.indexOf(up) === -1) distractors.push(up);
+      if (distractors.length < total - 1 && down > 0 && down !== answer && distractors.indexOf(down) === -1) distractors.push(down);
+      k++;
+    }
+
+    return shuffle([answer].concat(distractors));
+  }
+
+  function pairChoices(question, total) {
+    var a = question.a;
+    var b = question.b;
+    var product = question.product;
+    var seen = {};
+    var unique = [];
+
+    function add(x, y) {
+      if (!Number.isInteger(x) || !Number.isInteger(y) || x <= 0 || y <= 0) return;
+      if (x * y === product) return;
+      var key = x + 'x' + y;
+      if (seen[key]) return;
+      seen[key] = true;
+      unique.push({ a: x, b: y });
+    }
+
+    add(a + 1, b); add(a - 1, b); add(a, b + 1); add(a, b - 1);
+    add(a + 1, b + 1); add(a - 1, b - 1); add(a + 2, b); add(a, b + 2); add(a + 2, b + 2);
+
+    var k = 1;
+    while (unique.length < total - 1 && k <= 100) {
+      add(a + k + 1, b);
+      add(a, b + k + 1);
+      add(a + k + 1, b + k + 1);
+      k++;
+    }
+
+    var distractors = shuffle(unique).slice(0, total - 1);
+    return shuffle([{ a: a, b: b }].concat(distractors));
+  }
+
+  function makeChoices(question, count) {
+    var q = question && typeof question === 'object' ? question : {};
+    var total = Number.isInteger(count) && count > 1 ? count : 4;
+    return q.pair ? pairChoices(q, total) : numberChoices(q, total);
+  }
+
+  function checkAnswer(question, given) {
+    var q = question && typeof question === 'object' ? question : {};
+
+    if (q.pair) {
+      if (!given || typeof given !== 'object' || Array.isArray(given)) return false;
+      var x = toInt(given.a);
+      var y = toInt(given.b);
+      if (!Number.isInteger(x) || !Number.isInteger(y)) return false;
+      if (x <= 0 || y <= 0) return false;
+      return x * y === q.product;
+    }
+
+    var parsed = toInt(given);
+    if (!Number.isInteger(parsed)) return false;
+    return parsed === q.answer;
+  }
+
   return {
     FORMATS: FORMATS,
     ANSWER_TYPES: ANSWER_TYPES,
@@ -285,6 +379,8 @@
     questionKey: questionKey,
     shuffle: shuffle,
     buildPool: buildPool,
-    nextQuestion: nextQuestion
+    nextQuestion: nextQuestion,
+    makeChoices: makeChoices,
+    checkAnswer: checkAnswer
   };
 });

@@ -288,3 +288,89 @@ test('nextQuestion: раунд длиннее пула выдаёт все во�
   }
   assert.equal(seen.size, pool.length);
 });
+
+test('makeChoices: прямой вопрос — 4 уникальных числа, ровно один верный', () => {
+  const q = poolOf(['direct'], 7, 7, 8, 8)[0];
+  const choices = MTM.makeChoices(q);
+  assert.equal(choices.length, 4);
+  assert.equal(new Set(choices).size, 4);
+  assert.ok(choices.every(c => Number.isInteger(c) && c > 0), `${choices}`);
+  assert.equal(choices.filter(c => c === 56).length, 1);
+});
+
+test('makeChoices: пропущенный множитель и деление — ровно один верный', () => {
+  for (const q of poolOf(['missing'], 7, 7, 8, 8).concat(poolOf(['division'], 7, 7, 8, 8))) {
+    const choices = MTM.makeChoices(q);
+    assert.equal(new Set(choices).size, 4, q.prompt);
+    assert.ok(choices.every(c => Number.isInteger(c) && c > 0), `${q.prompt}: ${choices}`);
+    assert.equal(choices.filter(c => c === q.answer).length, 1, `${q.prompt}: ${choices}`);
+  }
+});
+
+test('makeChoices: числовые варианты всегда валидны (перебор a,b = 1..12)', () => {
+  const pool = poolOf(['direct', 'missing', 'division'], 1, 12, 1, 12);
+  assert.ok(pool.length > 400);
+  for (const q of pool) {
+    const choices = MTM.makeChoices(q);
+    assert.equal(choices.length, 4, q.prompt);
+    assert.equal(new Set(choices).size, 4, `${q.prompt}: ${choices}`);
+    assert.ok(choices.every(c => Number.isInteger(c) && c > 0), `${q.prompt}: ${choices}`);
+    assert.equal(choices.filter(c => c === q.answer).length, 1, `${q.prompt}: ${choices}`);
+  }
+});
+
+test('makeChoices: обратный вопрос — 4 уникальные пары, ровно одна верная', () => {
+  const q = poolOf(['reverse'], 7, 7, 8, 8)[0];
+  const choices = MTM.makeChoices(q);
+  assert.equal(choices.length, 4);
+  assert.ok(choices.every(p => Number.isInteger(p.a) && Number.isInteger(p.b) && p.a > 0 && p.b > 0), JSON.stringify(choices));
+  assert.equal(new Set(choices.map(p => p.a + 'x' + p.b)).size, 4);
+  assert.equal(choices.filter(p => p.a * p.b === 56).length, 1, JSON.stringify(choices));
+  assert.equal(choices.filter(p => p.a === 7 && p.b === 8).length, 1);
+});
+
+test('makeChoices: обратные варианты валидны на переборе (перебор a,b = 1..12)', () => {
+  const pool = poolOf(['reverse'], 1, 12, 1, 12);
+  for (const q of pool) {
+    const choices = MTM.makeChoices(q);
+    assert.equal(choices.length, 4, q.prompt);
+    assert.equal(new Set(choices.map(p => p.a + 'x' + p.b)).size, 4, `${q.prompt}: ${JSON.stringify(choices)}`);
+    assert.ok(choices.every(p => Number.isInteger(p.a) && Number.isInteger(p.b) && p.a > 0 && p.b > 0), `${q.prompt}: ${JSON.stringify(choices)}`);
+    assert.equal(choices.filter(p => p.a * p.b === q.product).length, 1, `${q.prompt}: ${JSON.stringify(choices)}`);
+  }
+});
+
+test('checkAnswer: числовое сравнение и мусор', () => {
+  const q = poolOf(['direct'], 7, 7, 8, 8)[0];
+  assert.equal(MTM.checkAnswer(q, '56'), true);
+  assert.equal(MTM.checkAnswer(q, 56), true);
+  assert.equal(MTM.checkAnswer(q, '07' === '0' ? '' : '56'), true);
+  assert.equal(MTM.checkAnswer(q, '56.0'), false);
+  assert.equal(MTM.checkAnswer(q, ''), false);
+  assert.equal(MTM.checkAnswer(q, 'ab'), false);
+  assert.equal(MTM.checkAnswer(q, null), false);
+});
+
+test('checkAnswer: ведущий ноль не мешает («07» равно 7)', () => {
+  const q = poolOf(['missing'], 7, 7, 8, 8).find(x => x.variant === 'askA');
+  assert.equal(MTM.checkAnswer(q, '07'), true);
+  assert.equal(MTM.checkAnswer(q, 7), true);
+  assert.equal(MTM.checkAnswer(q, '8'), false);
+});
+
+test('checkAnswer: обратный вопрос принимает любую верную пару', () => {
+  const q = poolOf(['reverse'], 7, 7, 8, 8)[0];
+  assert.equal(MTM.checkAnswer(q, { a: 7, b: 8 }), true);
+  assert.equal(MTM.checkAnswer(q, { a: 8, b: 7 }), true, 'перевёрнутая пара тоже верна');
+  assert.equal(MTM.checkAnswer(q, { a: '8', b: '7' }), true);
+});
+
+test('checkAnswer: обратный вопрос отвергает неверную пару и мусор', () => {
+  const q = poolOf(['reverse'], 7, 7, 8, 8)[0];
+  assert.equal(MTM.checkAnswer(q, { a: 6, b: 8 }), false);
+  assert.equal(MTM.checkAnswer(q, { a: 0, b: 56 }), false);
+  assert.equal(MTM.checkAnswer(q, { a: -1, b: -56 }), false);
+  assert.equal(MTM.checkAnswer(q, { a: 7 }), false);
+  assert.equal(MTM.checkAnswer(q, null), false);
+  assert.equal(MTM.checkAnswer(q, '56'), false, 'число не является ответом обратного задания');
+});
